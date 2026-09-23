@@ -75,8 +75,49 @@ class PlatformMainWindow(QMainWindow):
 
         self.init_ui()
         self.check_netfree_status()
+        self.update_auth_ui()
         if self.spreadsheet_id:
             self.refresh_lobby()
+
+    def update_auth_ui(self):
+        logged_in = self.sheets_client.is_logged_in()
+        if logged_in:
+            self.lbl_account_status.setText("🟢 מחובר לחשבון Google")
+            self.lbl_account_status.setStyleSheet("color: #34D399; font-weight: bold; background: #064E3B; border: 1px solid #059669; border-radius: 6px; padding: 5px 12px;")
+            self.btn_account_login.hide()
+            self.btn_account_logout.show()
+        else:
+            self.lbl_account_status.setText("⚪ לא מחובר ל-Google")
+            self.lbl_account_status.setStyleSheet("color: #94A3B8; background: #1E293B; border: 1px solid #334155; border-radius: 6px; padding: 5px 12px;")
+            self.btn_account_login.show()
+            self.btn_account_logout.hide()
+
+    def on_google_login_clicked(self):
+        self.btn_account_login.setEnabled(False)
+        self.btn_account_login.setText("מתחבר...")
+        try:
+            success, msg, _ = self.sheets_client.authenticate(prompt_browser=True)
+            if success:
+                QMessageBox.information(self, "התחברות הצליחה", "התחברת בהצלחה לחשבון Google!")
+            else:
+                QMessageBox.warning(self, "כשל בהתחברות", f"לא ניתן היה להתחבר:\n{msg}")
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"תקלה בהתחברות:\n{e}")
+        finally:
+            self.btn_account_login.setEnabled(True)
+            self.btn_account_login.setText("🔑 התחבר ל-Google")
+            self.update_auth_ui()
+
+    def on_google_logout_clicked(self):
+        reply = QMessageBox.question(
+            self, "התנתקות מחשבון Google",
+            "האם ברצונך להתנתק מחשבון Google הנוכחי?\n(הפעולה תמחק את הטוקן המקומי ותאפשר לך להתחבר עם חשבון אחר)",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.sheets_client.logout()
+            self.update_auth_ui()
+            QMessageBox.information(self, "התנתקת בהצלחה", "ההתנתקות הושלמה בהצלחה.")
 
     def check_netfree_status(self):
         try:
@@ -126,11 +167,14 @@ class PlatformMainWindow(QMainWindow):
         title_col.addWidget(sub_lbl)
         header_layout.addLayout(title_col, stretch=1)
 
+        self.lbl_account_status = QLabel("⚪ בודק חשבון...")
+        header_layout.addWidget(self.lbl_account_status)
+
         self.lbl_netfree = QLabel("🛡️ בודק נטפרי...")
         header_layout.addWidget(self.lbl_netfree)
         main_layout.addWidget(header_banner)
 
-        # שורת הגדרות מהירות: כינוי + מזהה שיטס
+        # שורת הגדרות מהירות: כינוי + חשבון גוגל + מזהה שיטס
         top_bar = QFrame()
         top_bar.setStyleSheet("""
             QFrame {
@@ -148,18 +192,30 @@ class PlatformMainWindow(QMainWindow):
         top_layout.addWidget(lbl_nick)
 
         self.txt_nick = QLineEdit(self.player_name)
-        self.txt_nick.setMaximumWidth(160)
+        self.txt_nick.setMaximumWidth(150)
         self.txt_nick.textChanged.connect(self._on_nick_changed)
         top_layout.addWidget(self.txt_nick)
 
-        lbl_s = QLabel("📊 מזהה גיליון שיתוף (Spreadsheet ID):")
+        lbl_s = QLabel("📊 מזהה גיליון שיתוף:")
         lbl_s.setStyleSheet("color: #94A3B8; font-weight: bold;")
         top_layout.addWidget(lbl_s)
 
         self.txt_sheet = QLineEdit(self.spreadsheet_id)
-        self.txt_sheet.setPlaceholderText("הדבק כתובת URL או מזהה גליון שנוצר...")
+        self.txt_sheet.setPlaceholderText("הדבק כתובת URL או מזהה גליון...")
         self.txt_sheet.textChanged.connect(self._on_sheet_changed)
         top_layout.addWidget(self.txt_sheet, stretch=1)
+
+        self.btn_account_login = QPushButton("🔑 התחבר ל-Google")
+        self.btn_account_login.setObjectName("btnPrimary")
+        self.btn_account_login.setToolTip("התחברות לחשבון Google כדי לשחק ולפתוח חדרים")
+        self.btn_account_login.clicked.connect(self.on_google_login_clicked)
+        top_layout.addWidget(self.btn_account_login)
+
+        self.btn_account_logout = QPushButton("🚪 התנתק")
+        self.btn_account_logout.setObjectName("btnDanger")
+        self.btn_account_logout.setToolTip("התנתק מחשבון Google הנוכחי והחלף חשבון")
+        self.btn_account_logout.clicked.connect(self.on_google_logout_clicked)
+        top_layout.addWidget(self.btn_account_logout)
 
         self.btn_create_sheet = QPushButton("📄 צור גליון חדש")
         self.btn_create_sheet.setObjectName("btnSuccess")
@@ -324,15 +380,23 @@ class PlatformMainWindow(QMainWindow):
         save_config(cfg)
 
     def on_create_sheet_clicked(self):
+        if not self.sheets_client.is_logged_in():
+            success, msg, _ = self.sheets_client.authenticate(prompt_browser=True)
+            self.update_auth_ui()
+            if not success:
+                QMessageBox.critical(self, "נדרשת התחברות Google", f"יש להתחבר לחשבון Google כדי ליצור גיליון משחקים:\n{msg}")
+                return
+
         self.btn_create_sheet.setEnabled(False)
         self.btn_create_sheet.setText("יוצר גליון...")
 
         def _do_create():
             try:
-                success, sheet_id, sheet_url = self.sync_mgr.client.create_new_spreadsheet("פלטפורמת משחקי לוח בנטפרי")
+                success, sheet_id, sheet_url = self.sheets_client.create_new_spreadsheet("פלטפורמת משחקי לוח בנטפרי")
                 if success:
                     self.txt_sheet.setText(sheet_id)
                     self.spreadsheet_id = sheet_id
+                    self.update_auth_ui()
                     QMessageBox.information(self, "נוצר בהצלחה!", f"נוצר גליון Google Sheets חדש ומותאם:\n{sheet_id}\n\nהגליון מוכן לשימוש בכל המשחקים.")
                     self.refresh_lobby()
                 else:
