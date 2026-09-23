@@ -57,10 +57,11 @@ python main.py
 ---
 
 ## 📄 דפי אינטרנט ומדיניות (Google OAuth)
-הדפים הציבוריים עבור אימות הפרויקט בגוגל קלאוד זמינים בתיקיית `web/`:
-- `web/index.html` – דף הבית של האפליקציה
-- `web/privacy.html` – מדיניות פרטיות
-- `web/terms.html` – תנאי שימוש
+הדפים הציבוריים עבור אימות הפרויקט בגוגל קלאוד פעילים תחת הדומיין הרשמי:
+- **דף הבית:** [https://games.levtov.uk/](https://games.levtov.uk/)
+- **מדיניות פרטיות:** [https://games.levtov.uk/privacy.html](https://games.levtov.uk/privacy.html)
+- **תנאי שימוש:** [https://games.levtov.uk/terms.html](https://games.levtov.uk/terms.html)
+- **קבצי המקור של הדפים:** בתיקיית `web/` וב-GitHub Pages.
 
 ---
 
