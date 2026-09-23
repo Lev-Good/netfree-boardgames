@@ -1,0 +1,38 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec
+
+# Build & Dist
+build/
+dist/
+*.egg-info/
+*.bin
+
+# Environment & Secrets (Never commit tokens, client secrets or user configs!)
+token.json
+*/token.json
+**/token.json
+credentials.json
+*/credentials.json
+**/credentials.json
+config.json
+*/config.json
+**/config.json
+crash.log
+*.log
+
+# Large distribution zips/binaries
+*.zip
+*.exe
+שחמט_נייד_נטפרי/*.exe
+שחמט_נייד_נטפרי/token.json
+שחמט_נייד_נטפרי/credentials.json
+שחמט_נייד_נטפרי/config.json
+
+# System & IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store

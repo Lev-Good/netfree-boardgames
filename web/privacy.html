@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מדיניות פרטיות – שחמט מקוון בנטפרי</title>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Assistant', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #F8F9FA;
+            color: #202124;
+            line-height: 1.7;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #FFFFFF;
+            padding: 40px;
+            border-radius: 12px;
+            border: 1px solid #DADCE0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            color: #1A73E8;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        .last-updated {
+            color: #5F6368;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+        }
+        h2 {
+            color: #1557B0;
+            font-size: 1.4rem;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #E8F0FE;
+            padding-bottom: 5px;
+        }
+        p, ul {
+            margin-bottom: 15px;
+        }
+        ul {
+            padding-right: 25px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .highlight-box {
+            background-color: #E8F0FE;
+            border-right: 4px solid #1A73E8;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 0.95rem;
+        }
+        a {
+            color: #1A73E8;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>מדיניות פרטיות (Privacy Policy)</h1>
+    <div class="last-updated">עודכן לאחרונה: ספטמבר 2026</div>
+
+    <p>ברוכים הבאים ל<strong>פלטפורמת שחמט מקוון בנטפרי</strong> ("האפליקציה"). אנו מכבדים את פרטיות המשתמשים ומחויבים להגן עליה בכל עת. מסמך זה מפרט כיצד האפליקציה מתקשרת עם חשבון Google של המשתמש, אילו הרשאות נדרשות, וכיצד המידע מנוהל ומאובטח.</p>
+
+    <h2>1. מהות האפליקציה והשימוש ב-Google API</h2>
+    <p>האפליקציה הינה תוכנת שולחן עבודה עצמאית (Desktop Application) המאפשרת למשתמשי אינטרנט מסונן (בפרט נטפרי) לשחק שחמט מקוון מול חברים, תוך שימוש בלעדי ב-Google Sheets API כשרת סנכרון מהלכים וצ'אט, ללא צורך בשרת פרטי או WebSockets.</p>
+
+    <h2>2. הרשאות גישה (Google OAuth Scopes)</h2>
+    <p>האפליקציה מבקשת הרשאה אחת בלבד:</p>
+    <ul>
+        <li><code>https://www.googleapis.com/auth/spreadsheets</code> – קריאה וכתיבה של קובצי גיליונות אלקטרוניים (Google Sheets).</li>
+    </ul>
+    <p><strong>מדוע נדרשת הרשאה זו?</strong><br>
+    הרשאה זו נדרשת אך ורק כדי לכתוב ולקרוא את מהלכי השחמט, מצב החדר (Metadata) והודעות הצ'אט בגיליון שהוגדר על ידי המשתמש (או שנוצר על ידיו בלחיצת כפתור באפליקציה).</p>
+
+    <h2>3. איסוף, שמירה ושיתוף נתונים</h2>
+    <div class="highlight-box">
+        <strong>הצהרת אי-איסוף מידע אישי:</strong><br>
+        האפליקציה אינה אוספת, אינה שומרת ואינה מעבירה שום מידע אישי, פרטי זיהוי, כתובות דוא"ל, אנשי קשר או קבצים אישיים מ-Google Drive לשום שרת חיצוני, צד שלישי או מסד נתונים.
+    </div>
+    <ul>
+        <li><strong>אחסון מקומי:</strong> אסימון ההתחברות (OAuth Token) נשמר באופן מאובטח ומקומי בלבד במחשב המשתמש בקובץ <code>token.json</code>, לצורך שמירת ההתחברות בין הפעלות של התוכנה.</li>
+        <li><strong>תקשורת ישירה:</strong> כל התקשורת מתבצעת ישירות בין המחשב של המשתמש לבין השרתים המאובטחים של Google דרך HTTPS (תוך שימוש בתעודת האבטחה הרשמית של נטפרי).</li>
+        <li><strong>שיתוף נתונים:</strong> המהלכים והודעות הצ'אט נרשמים אך ורק בגיליון השחמט הספציפי ששותף בין שני השחקנים.</li>
+    </ul>
+
+    <h2>4. תאימות למדיניות נתוני המשתמש של Google API</h2>
+    <p>השימוש של האפליקציה במידע המתקבל מממשקי ה-API של Google עומד במלואו ב-<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, כולל דרישות השימוש המוגבל (Limited Use requirements).</p>
+
+    <h2>5. מחיקת נתונים וביטול גישה</h2>
+    <p>המשתמש יכול לבטל את גישת האפליקציה לחשבונו בכל עת באמצעות:</p>
+    <ul>
+        <li>כניסה לניהול חשבון Google: <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">ניהול אפליקציות עם גישה לחשבון</a> והסרת ההרשאה לתוכנה.</li>
+        <li>מחיקת הקובץ המקומי <code>token.json</code> מתיקיית התוכנה במחשב.</li>
+    </ul>
+
+    <h2>6. יצירת קשר</h2>
+    <p>לשאלות, בירורים או דיווח בנושאי פרטיות ואבטחה, ניתן לפנות למפתחי הפרויקט דרך מאגר ה-GitHub של הפרויקט.</p>
+</div>
+
+</body>
+</html>
