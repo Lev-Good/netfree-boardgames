@@ -495,7 +495,7 @@ class BackgammonMainWindow(QMainWindow):
 
         # טיימר סנכרון מקוון (Polling) כל 1.8 שניות
         self.poll_timer = QTimer(self)
-        self.poll_timer.setInterval(1800)
+        self.poll_timer.setInterval(2500)
         self.poll_timer.timeout.connect(self.on_poll_timer)
         if self.is_online:
             self.poll_timer.start()

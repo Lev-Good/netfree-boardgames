@@ -647,7 +647,7 @@ class CheckersMainWindow(QMainWindow):
 
     # ------------------ דגימה מאוחדת ורשת ------------------
 
-    def start_polling(self, interval_ms: int = 1800):
+    def start_polling(self, interval_ms: int = 2500):
         if not self.is_online:
             return
         self.is_polling_active = True

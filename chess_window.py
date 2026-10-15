@@ -15,7 +15,8 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
     QHeaderView, QGroupBox, QComboBox, QFileDialog, QMessageBox,
-    QFrame, QSplitter, QTabWidget, QTextEdit, QCheckBox, QAbstractItemView
+    QFrame, QSplitter, QTabWidget, QTextEdit, QCheckBox, QAbstractItemView,
+    QInputDialog
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QFont, QColor
@@ -28,20 +29,35 @@ from chess_sync import ChessSyncManager, encode_invite_code, decode_invite_code
 from google_sheets_client import GoogleSheetsClient, extract_spreadsheet_id, load_config, save_config
 from theme_style import get_gaming_stylesheet
 import sound_effects
+from gemini_coach import GeminiChessCoach
 
 
 class ChessNetworkWorker(QThread):
-    """תהליך רקע לשליחה ומשיכת נתונים מ-Google Sheets API ללא תקיעת ממשק המשתמש"""
+    """תהליך רקע לשליחה ומשיכת נתונים מ-Google Sheets API ו-Gemini ללא תקיעת הממשק"""
     finished_task = Signal(str, bool, object, str)  # (task_type, success, data, error_msg)
 
-    def __init__(self, sync_mgr: ChessSyncManager, task_type: str, **kwargs):
+    def __init__(self, sync_mgr: ChessSyncManager, task_type: str, coach: Optional[GeminiChessCoach] = None, **kwargs):
         super().__init__()
         self.sync_mgr = sync_mgr
         self.task_type = task_type
+        self.coach = coach
         self.kwargs = kwargs
 
     def run(self):
         try:
+            if self.task_type == "gemini_hint":
+                if not self.coach:
+                    self.finished_task.emit("gemini_hint", False, None, "רכיב Gemini אינו זמין")
+                    return
+                success, hint_res = self.coach.get_chess_hint(
+                    fen=self.kwargs.get("fen", ""),
+                    is_check=self.kwargs.get("is_check", False),
+                    turn=self.kwargs.get("turn", "W"),
+                    move_history=self.kwargs.get("move_history", [])
+                )
+                self.finished_task.emit("gemini_hint", success, hint_res, "" if success else hint_res)
+                return
+
             if self.task_type == "send_move":
                 success, msg = self.sync_mgr.send_move(
                     spreadsheet_id=self.kwargs["sheet_id"],
@@ -134,6 +150,7 @@ class ChessMainWindow(QMainWindow):
         self.engine = ChessEngine()
         self.sheets_client = GoogleSheetsClient()
         self.sync_mgr = ChessSyncManager(self.sheets_client)
+        self.coach = GeminiChessCoach()
 
         # טעינת הגדרות שמורות
         cfg = load_config()
@@ -346,6 +363,40 @@ class ChessMainWindow(QMainWindow):
         actions_bar.addWidget(self.btn_takeback)
         actions_bar.addWidget(self.btn_new_game)
         layout.addLayout(actions_bar)
+
+        # ------------------ תיבת יועץ בינה מלאכותית (Google Gemini AI Coach) ------------------
+        ai_box = QGroupBox("🤖 מאמן ויועץ שחמט AI (Google Gemini)")
+        ai_layout = QVBoxLayout(ai_box)
+        ai_layout.setContentsMargins(8, 8, 8, 8)
+
+        ai_btn_row = QHBoxLayout()
+        self.btn_get_ai_hint = QPushButton("💡 קבל הצעת מהלך מ-AI")
+        self.btn_get_ai_hint.setObjectName("btnSuccess")
+        self.btn_get_ai_hint.clicked.connect(self.on_get_ai_hint_clicked)
+
+        self.btn_config_ai_key = QPushButton("🔑 הגדר מפתח Gemini")
+        self.btn_config_ai_key.setObjectName("btnSecondary")
+        self.btn_config_ai_key.clicked.connect(self.on_config_ai_key_clicked)
+
+        ai_btn_row.addWidget(self.btn_get_ai_hint, stretch=2)
+        ai_btn_row.addWidget(self.btn_config_ai_key, stretch=1)
+        ai_layout.addLayout(ai_btn_row)
+
+        self.lbl_ai_hint_display = QLabel("לחץ על 'קבל הצעת מהלך' כדי לקבל ניתוח עמדה והמלצה מ-Gemini.")
+        self.lbl_ai_hint_display.setWordWrap(True)
+        self.lbl_ai_hint_display.setStyleSheet("""
+            QLabel {
+                background-color: #0F172A;
+                border: 1px solid #334155;
+                border-radius: 6px;
+                padding: 8px;
+                color: #CBD5E1;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+        """)
+        ai_layout.addWidget(self.lbl_ai_hint_display)
+        layout.addWidget(ai_box)
 
         # טבלת היסטוריית מהלכים
         hist_box = QGroupBox("היסטוריית מהלכים")
@@ -877,7 +928,7 @@ class ChessMainWindow(QMainWindow):
 
     # ------------------ דגימה מאוחדת (Polling) ------------------
 
-    def start_polling(self, interval_ms: int = 1800):
+    def start_polling(self, interval_ms: int = 2500):
         if not self.is_online:
             return
         self.is_polling_active = True
@@ -1027,6 +1078,54 @@ class ChessMainWindow(QMainWindow):
             sound_effects.play_game_end_sound(False)
             QMessageBox.information(self, "המשחק הסתיים", "נכנעת. המשחק הסתיים.")
 
+    # ------------------ יועץ בינה מלאכותית (Google Gemini AI Coach) ------------------
+
+    def on_config_ai_key_clicked(self):
+        curr_key = self.coach.get_api_key()
+        key, ok = QInputDialog.getText(
+            self,
+            "הגדרת מפתח Gemini API",
+            "הזן את מפתח ה-API של Google Gemini:\n(ניתן להפיק מפתח חינם ב-Google AI Studio):",
+            QLineEdit.Normal,
+            curr_key
+        )
+        if ok and key is not None:
+            self.coach.set_api_key(key)
+            if key.strip():
+                QMessageBox.information(self, "הגדרה נשמרה", "מפתח ה-API של Gemini נשמר בהצלחה!")
+                self.lbl_ai_hint_display.setText("מפתח ה-API הוגדר. לחץ על 'קבל הצעת מהלך' כדי לקבל ניתוח עמדה.")
+            else:
+                self.lbl_ai_hint_display.setText("מפתח ה-API הוסר.")
+
+    def on_get_ai_hint_clicked(self):
+        api_key = self.coach.get_api_key()
+        if not api_key:
+            res = QMessageBox.question(
+                self,
+                "נדרש מפתח Gemini API",
+                "לא הוגדר מפתח Google Gemini API.\nהאם ברצונך להגדיר מפתח כעת?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if res == QMessageBox.Yes:
+                self.on_config_ai_key_clicked()
+            return
+
+        self.btn_get_ai_hint.setEnabled(False)
+        self.lbl_ai_hint_display.setText("⏳ Gemini מנתח את מצב הלוח ומכין עצה טקטית... אנא המתן.")
+
+        fen = self.engine.board.fen()
+        is_chk = self.engine.board.is_check()
+        turn_str = "W" if self.engine.board.turn == chess.WHITE else "B"
+        move_history = [m.san for m in self.engine.history]
+
+        self.run_background_task(
+            "gemini_hint",
+            fen=fen,
+            is_check=is_chk,
+            turn=turn_str,
+            move_history=move_history
+        )
+
     def record_game_end(self, winner: str):
         self.clock_timer.stop()
         if winner == "local":
@@ -1068,7 +1167,7 @@ class ChessMainWindow(QMainWindow):
                 return
             self.is_polling_busy = True
 
-        worker = ChessNetworkWorker(self.sync_mgr, task_type, **kwargs)
+        worker = ChessNetworkWorker(self.sync_mgr, task_type, coach=self.coach, **kwargs)
         self.active_workers.append(worker)
 
         def _on_done(t_type, s_ok, d_res, e_msg):
@@ -1083,7 +1182,16 @@ class ChessMainWindow(QMainWindow):
         worker.start()
 
     def on_worker_finished(self, task_type: str, success: bool, data: Any, err_msg: str):
-        if task_type == "poll_bundle":
+        if task_type == "gemini_hint":
+            self.btn_get_ai_hint.setEnabled(True)
+            if success and data:
+                hint_text = str(data)
+                self.lbl_ai_hint_display.setText(f"💡 <b>עצת Gemini:</b><br>{hint_text}")
+                sound_effects.play_move_sound()
+            else:
+                self.lbl_ai_hint_display.setText(f"❌ <b>שגיאה:</b> {err_msg}")
+
+        elif task_type == "poll_bundle":
             self.is_polling_busy = False
             if success and data:
                 self.process_poll_bundle_result(data)
@@ -1117,7 +1225,7 @@ class ChessMainWindow(QMainWindow):
                 self.tabs.setCurrentIndex(0)
                 tc = self.combo_time_control.currentText()
                 self.setup_time_control(tc)
-                self.start_polling(interval_ms=1800)
+                self.start_polling(interval_ms=2500)
                 QMessageBox.information(
                     self,
                     "החדר נפתח בהצלחה!",
@@ -1148,7 +1256,7 @@ class ChessMainWindow(QMainWindow):
                 self.lbl_room_status.setStyleSheet("color: #137333; font-weight: bold;")
                 self.setup_time_control(tc)
                 self.tabs.setCurrentIndex(0)
-                self.start_polling(interval_ms=1800)
+                self.start_polling(interval_ms=2500)
                 self.update_score_and_captures()
                 self.update_game_status_display()
                 QMessageBox.information(self, "חיבור לחדר הצליח!", f"התחברת לחדר {self.game_id} מול {h_name}!")

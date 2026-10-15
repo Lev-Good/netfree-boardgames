@@ -11,7 +11,7 @@ a = Analysis(
         'chess_engine', 'chess_board_widget', 'chess_window',
         'checkers_engine', 'checkers_board_widget', 'checkers_window',
         'backgammon_engine', 'backgammon_board_widget', 'backgammon_window',
-        'platform_window', 'chess_sync', 'google_sheets_client',
+        'platform_window', 'chess_sync', 'google_sheets_client', 'gemini_coach',
         'googleapiclient', 'google_auth_oauthlib', 'google.auth.transport.requests'
     ],
     hookspath=[],
